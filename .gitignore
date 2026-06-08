@@ -1,38 +1,19 @@
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+terraform.tfvars
+.terraform.lock.hcl
+
+# Secrets & keys
+*.pem
+*.key
+.env
+
+# Node
+node_modules/
+npm-debug.log
+
+# OS
 .DS_Store
-*.tfvars
-.terraform
-*.tfstate*
-*.lock.hcl
-*.log
-.vscode
-reports
-env
-oss-output
-kubeconfig_*
-.idea
-node_modules
-dist
-.venv
-
-ort-build
-
-Chart.lock
-**/charts/*.tgz
-
-.nx/cache
-.nx/workspace-data
-
-screenshots
-# Devenv
-.devenv*
-devenv.local.nix
-
-# direnv
-.direnv
-
-.pre-commit-config.yaml
-/terraform/eks/default/keys/*
-/terraform/eks/default/.terraform
-/terraform/eks/default/.terraform.lock.hcl
-/terraform/eks/default/.terraform.tfstate
-/terraform/eks/default/.terraform.tfstate.backup
+EOF
