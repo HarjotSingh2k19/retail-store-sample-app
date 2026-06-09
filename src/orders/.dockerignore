@@ -1,8 +1,3 @@
-Dockerfile
-.dockerignore
-docker-compose.yml
-.gitignore
-chart
-scripts
-target
-.idea
+target/
+.git
+*.md

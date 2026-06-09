@@ -1,57 +1,34 @@
-# Build Stage
-FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS build-env
+# Stage 1 — Build
+# Go compiler to build a single static binary
+FROM golang:1.23-alpine AS builder
+WORKDIR /app
 
-# We tell DNF not to install Recommends and Suggests packages, which are
-# weak dependencies in DNF terminology, thus keeping our installed set of
-# packages as minimal as possible.
-RUN dnf --setopt=install_weak_deps=False install -q -y \
-    git \
-    golang \
-    && \
-    dnf clean all
-
-RUN mkdir -p "${GOPATH}/src" "${GOPATH}/bin" /appsrc
-
-WORKDIR /appsrc
-
-ENV GOPROXY=https://goproxy.io,direct
-
+# Download dependencies first (cached layer)
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Copy source and build
 COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o catalog .
 
-RUN go build -o main main.go
-
-# Final stage
-FROM public.ecr.aws/amazonlinux/amazonlinux:2023
-
-ENV APPUSER=appuser
-ENV APPUID=1000
-ENV APPGID=1000
-
-# We tell DNF not to install Recommends and Suggests packages, which are
-# weak dependencies in DNF terminology, thus keeping our installed set of
-# packages as minimal as possible.
-RUN dnf --setopt=install_weak_deps=False install -q -y \
-    shadow-utils \
-    && \
-    dnf clean all
-
-RUN useradd \
-    --home "/app" \
-    --create-home \
-    --user-group \
-    --uid "$APPUID" \
-    "$APPUSER"
-
+# Stage 2 — Run
+# alpine is tiny — Go binary needs almost no runtime dependencies
+FROM alpine:3.19
 WORKDIR /app
-USER appuser
 
-COPY --chown=appuser:appuser --from=build-env /appsrc/main /app/
+# Install wget for health check
+RUN apk --no-cache add wget
 
-COPY ./ATTRIBUTION.md ./LICENSES.md
+# Copy only the compiled binary from Stage 1
+COPY --from=builder /app/catalog .
 
-ENV GIN_MODE=release
+# Copy static data files the app needs
+COPY --from=builder /app/repository/products.json ./repository/products.json
+COPY --from=builder /app/repository/tags.json ./repository/tags.json
 
-ENTRYPOINT ["/app/main"]
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD wget -qO- http://localhost:8080/catalogue/size || exit 1
+
+ENTRYPOINT ["./catalog"]
