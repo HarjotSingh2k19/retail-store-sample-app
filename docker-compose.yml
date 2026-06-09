@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+
+  catalog:
+    image: harjotsingh2k19/retail-store-catalog:v1
+    container_name: catalog
+    ports:
+      - "8081:8080"
+    environment:
+      - PORT=8080
+      - RETAIL_CATALOG_PERSISTENCE_PROVIDER=in-memory
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/catalog/size"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - retail-network
+
+  cart:
+    image: harjotsingh2k19/retail-store-cart:v1
+    container_name: cart
+    ports:
+      - "8082:8080"
+    environment:
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - retail-network
+
+  orders:
+    image: harjotsingh2k19/retail-store-orders:v1
+    container_name: orders
+    ports:
+      - "8083:8080"
+    environment:
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - retail-network
+
+  checkout:
+    image: harjotsingh2k19/retail-store-checkout:v1
+    container_name: checkout
+    ports:
+      - "8085:8080"
+    environment:
+      - PORT=8080
+      - RETAIL_CHECKOUT_PERSISTENCE_PROVIDER=in-memory
+      - RETAIL_CHECKOUT_ENDPOINTS_ORDERS=http://orders:8080
+    depends_on:
+      orders:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - retail-network
+
+  ui:
+    image: harjotsingh2k19/retail-store-ui:v1
+    container_name: ui
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - RETAIL_UI_ENDPOINTS_CATALOG=http://catalog:8080
+      - RETAIL_UI_ENDPOINTS_CARTS=http://cart:8080
+      - RETAIL_UI_ENDPOINTS_CHECKOUT=http://checkout:8080
+      - RETAIL_UI_ENDPOINTS_ORDERS=http://orders:8080
+    depends_on:
+      catalog:
+        condition: service_healthy
+      cart:
+        condition: service_healthy
+      orders:
+        condition: service_healthy
+      checkout:
+        condition: service_healthy
+    networks:
+      - retail-network
+
+networks:
+  retail-network:
+    driver: bridge
