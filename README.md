@@ -227,6 +227,7 @@ Before you begin, ensure you have:
 ### Setup AWS Credentials
 
 ```bash
+# Run on your local machine
 aws configure
 # AWS Access Key ID: <your-access-key>
 # AWS Secret Access Key: <your-secret-key>
@@ -444,6 +445,7 @@ scp -i ~/.ssh/gitops-factory-key.pem \
 ```bash
 ssh -i ~/.ssh/gitops-factory-key.pem ubuntu@EC2_IP
 
+# Run inside the AWS EC2 instance
 kind create cluster --config kind-config.yaml
 kubectl cluster-info --context kind-gitops-factory
 kubectl get nodes
